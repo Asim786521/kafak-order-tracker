@@ -3,6 +3,7 @@ const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
 const { sendOrderEvent } = require('../producer/orderProducer');
 const redisClient = require('../redis/client'); 
+const { kafka } = require('../producer/orderProducer'); // Add this line
 
 router.post('/order', async (req, res) => {
   try {

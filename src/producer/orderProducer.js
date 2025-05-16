@@ -2,8 +2,7 @@ const { Kafka, Partitioners } = require("kafkajs");
 
 const kafka = new Kafka({
   clientId: "order_app",
-  brokers: [process.env.KAFKA_SERVER || 'kafka:9092'],
-  // Add connection timeout and retry configuration
+  brokers: ['kafka:9092'],  // Remove process.env and set directly to kafka:9092
   connectionTimeout: 3000,
   retry: {
     initialRetryTime: 100,
@@ -20,13 +19,16 @@ let producerConnected = false;
 const sendOrderEvent = async (order) => {
   try {
     if (!producerConnected) {
+      console.log('[Kafka] Connecting to producer...');
       await producer.connect();
       producerConnected = true;
+      console.log('[Kafka] Producer connected successfully');
     }
 
     const retries = 5;
     let attempts = 0;
     let success = false;
+    let lastError = null;
 
     while (attempts < retries && !success) {
       try {
@@ -35,21 +37,25 @@ const sendOrderEvent = async (order) => {
           messages: [{ value: JSON.stringify(order) }],
         });
         success = true;
-        console.log("Order event sent successfully!");
+        console.log(`[Kafka] Order ${order.orderId} sent successfully!`);
       } catch (error) {
         attempts++;
-        console.error(`Attempt ${attempts} failed: ${error.message}`);
+        lastError = error;
+        console.error(`[Kafka] Attempt ${attempts}/${retries} failed: ${error.message}`);
         if (attempts < retries) {
-          await new Promise((resolve) => setTimeout(resolve, 300));
+          await new Promise((resolve) => setTimeout(resolve, 300 * attempts));
         }
       }
     }
 
     if (!success) {
-      console.error(`Failed to send order after ${retries} attempts.`);
+      throw new Error(`Failed to send order after ${retries} attempts. Last error: ${lastError?.message}`);
     }
+    
+    return success;
   } catch (error) {
-    console.error(`Error connecting to Kafka or sending order event: ${error.message}`);
+    console.error(`[Kafka] Error: ${error.message}`);
+    throw error;
   }
 };
 
@@ -61,4 +67,5 @@ process.on("exit", async () => {
 
 module.exports = {
   sendOrderEvent,
+  kafka
 };

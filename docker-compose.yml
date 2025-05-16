@@ -7,6 +7,22 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_INIT_LIMIT: 5
+      ZOOKEEPER_SYNC_LIMIT: 2
+      ZOOKEEPER_MAX_CLIENT_CNXNS: 60
+      ZOOKEEPER_SESSION_TIMEOUT_MS: 40000
+      ZOOKEEPER_MIN_SESSION_TIMEOUT_MS: 4000
+      ZOOKEEPER_MAX_SESSION_TIMEOUT_MS: 60000
+      ZOOKEEPER_AUTOPURGE_PURGE_INTERVAL: 1
+      ZOOKEEPER_AUTOPURGE_SNAP_RETAIN_COUNT: 3
+    volumes:
+      - zookeeper-data:/var/lib/zookeeper/data
+      - zookeeper-logs:/var/lib/zookeeper/log
+    healthcheck:
+      test: echo stat | nc localhost 2181
+      interval: 10s
+      timeout: 10s
+      retries: 3
     ports:
       - "2181:2181"
     networks:
@@ -53,7 +69,7 @@ services:
       - "4000:4000"
     environment:
       - PORT=4000
-      - KAFKA_SERVER=kafka:9092
+      - KAFKA_BROKER=kafka:29092  # Changed from kafka:9092 to kafka:29092
       - REDIS_URL=redis://redis:6379
     networks:
       - kafka-net
@@ -64,3 +80,5 @@ networks:
 
 volumes:
   redis-data:
+  zookeeper-data:
+  zookeeper-logs:
