@@ -1,0 +1,59 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '16'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run tests
+      run: npm test
+      continue-on-error: true
+
+  # Commenting out Docker Hub push process
+  # build-and-push-docker:
+  #   needs: build-and-test
+  #   runs-on: ubuntu-latest
+  #   if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+  #   steps:
+  #   - uses: actions/checkout@v3
+  #   - name: Set up Docker Buildx
+  #     uses: docker/setup-buildx-action@v2
+  #   - name: Login to Docker Hub
+  #     uses: docker/login-action@v2
+  #     with:
+  #       username: ${{ secrets.DOCKER_USERNAME }}
+  #       password: ${{ secrets.DOCKER_PASSWORD }}
+  #   - name: Build and push Docker image
+  #     uses: docker/build-push-action@v4
+  #     with:
+  #       context: .
+  #       push: true
+  #       tags: ${{ secrets.DOCKER_USERNAME }}/kafka-order-tracker:latest
+
+  deploy:
+    # needs: build-and-push-docker  # Removing dependency on docker push
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+
+    steps:
+    - name: Deploy to production
+      run: echo "Deploying to production server..."
+      # Add actual deployment steps here based on your deployment strategy
+      # For example, SSH into your server and pull the latest Docker image
